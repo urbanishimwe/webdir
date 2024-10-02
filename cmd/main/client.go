@@ -189,14 +189,14 @@ func webDirMakeHTTPRequest(address string, mssg *node.Message) (*node.Message, e
 
 	resp, err := http.Post(newURL.String(), mime.TypeByExtension(".json"), bytes.NewReader(reqBody))
 	if err != nil {
-		log.Printf("webDirMakeHTTPRequest post error: %q\n", err)
+		log.Println("webDirMakeHTTPRequest http post failed")
 		return &node.Message{}, err
 	}
 
 	defer resp.Body.Close()
 	resRaw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("webDirMakeHTTPRequest resp body read error: %q\n", err)
+		log.Println("webDirMakeHTTPRequest resp body read failed")
 		return &node.Message{}, err
 	}
 
