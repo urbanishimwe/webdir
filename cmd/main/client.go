@@ -47,7 +47,7 @@ func (srv *httpServer) listenAndServe() {
 	mux.HandleFunc("/stop", srv.stopHandler)
 
 	mux.HandleFunc("/", srv.homeHandler)
-	log.Printf("HTTP listening on: %s", srv.httpServer.Addr())
+	log.Printf("Node(%s) HTTP listening on: %s", srv.node.Node.Oauth.UserName, srv.httpServer.Addr())
 	http.Serve(srv.httpServer, mux)
 }
 
