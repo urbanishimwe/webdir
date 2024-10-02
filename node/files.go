@@ -30,8 +30,8 @@ func addOwnedFiles(node *NodeConfig) error {
 			return filepath.SkipDir
 		}
 
-		update := updateTimeNow(CodeCreateFile, node.Node.Oauth.UserName, "")
-		clientMakeCUD(node, File{Name: dirEntry.Name()}, update)
+		fileCont, _ := readFile(node, dirEntry.Name())
+		node.ClientUpdateFile(UpdateFileContent{Name: dirEntry.Name(), Content: string(fileCont)})
 		return nil
 	})
 }
@@ -46,4 +46,12 @@ func writeFile(nd *NodeConfig, fileName string, data []byte) error {
 
 func deleteFile(nd *NodeConfig, fileName string) error {
 	return os.Remove(filepath.Join(nd.BaseFilePath, fileName))
+}
+
+func createFile(nd *NodeConfig, fileName string) error {
+	f, err := os.OpenFile(filepath.Join(nd.BaseFilePath, fileName), os.O_CREATE|os.O_RDONLY, 0666)
+	if err != nil {
+		return err
+	}
+	return f.Close()
 }
