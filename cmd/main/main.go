@@ -26,7 +26,7 @@ func main() {
 	httpSrv := mustNewHttpServer(nil, addr)
 	if publicAddr == "" {
 		temp.PublicAddr = httpSrv.httpServer.Addr()
-	} else if netAddr, err := net.ResolveIPAddr("", publicAddr); err != nil {
+	} else if netAddr, err := net.ResolveTCPAddr("", publicAddr); err != nil {
 		log.Fatalf("Resovling public address(%s) failed: %q", publicAddr, err)
 	} else {
 		temp.PublicAddr = netAddr
