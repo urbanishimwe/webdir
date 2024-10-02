@@ -30,8 +30,7 @@ func addOwnedFiles(node *NodeConfig) error {
 			return filepath.SkipDir
 		}
 
-		fileCont, _ := readFile(node, dirEntry.Name())
-		node.ClientUpdateFile(UpdateFileContent{Name: dirEntry.Name(), Content: string(fileCont)})
+		node.ClientCreateFile(dirEntry.Name())
 		return nil
 	})
 }
