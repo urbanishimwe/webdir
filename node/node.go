@@ -113,8 +113,8 @@ func nodeDequeUpdates(node *NodeConfig) {
 }
 
 func sendUpdates(node *NodeConfig, updates *UpdateTime) {
+	log.Printf("Sending new updates(%s)\n", updates.Code)
 	for _, _node := range copyNodesAddress(node) {
-		log.Printf("NewUpdates")
 		updateTimeRaw, _ := json.Marshal(updates)
 		mssg := Message{
 			Header: MessageHeader{

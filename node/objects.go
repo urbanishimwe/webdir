@@ -94,6 +94,27 @@ const (
 	CodeRegister
 )
 
+func (c Code) String() string {
+	var cName = [...]string{
+		"CodeNone",
+		"CodeResponse",
+		"CodeGetInfo",
+		"CodeUpdate",
+		"CodePing",
+		"CodeNodes",
+		"CodeDirectory",
+		"CodeCreateFile",
+		"CodeReadFile",
+		"CodeUpdateFile",
+		"CodeDeleteFile",
+		"CodeRegister",
+	}
+	if int(c) < len(cName) {
+		return cName[c]
+	}
+	return "Invalid Code"
+}
+
 type ResponseStatus string
 
 const (
