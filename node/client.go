@@ -12,7 +12,7 @@ func (node *NodeConfig) ClientCreateFile(fileName string) *MessageBody {
 		return messageBodyFormat(CodeCreateFile, StatusFileExist, f.Owner)
 	}
 
-	err := writeFile(node, fileName, nil)
+	err := createFile(node, fileName)
 	if err != nil {
 		log.Printf("ClientCreateFile writeFile %q\n", err)
 		return messageBodyFormat(CodeCreateFile, StatusInternalError, err.Error())
