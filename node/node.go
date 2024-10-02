@@ -35,9 +35,13 @@ func MustInitServer(temp NodeConfig, meshInitiator string, netClient NetClient) 
 		log.Printf("Node(%s) is mesh initiator %q\n", newNode.Node.Oauth.UserName, newNode.Node.Address)
 	}
 
+	err = addOwnedFiles(&newNode)
+	if err != nil {
+		log.Println("WalkDir failed with ", err)
+	}
+
 	go nodeDequeUpdates(&newNode)
 	go nodePing(&newNode)
-	addOwnedFiles(&newNode)
 	return &newNode
 }
 

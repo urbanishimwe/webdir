@@ -21,16 +21,20 @@ func initBaseDir(node *NodeConfig) error {
 func addOwnedFiles(node *NodeConfig) error {
 	return filepath.WalkDir(node.BaseFilePath, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
-			log.Printf("readBaseDir walking %q error: %q\n", path, err)
 			return nil
 		}
 
 		// Since we only share files, we will skip all other sub-directories in our base directory
 		if dirEntry.IsDir() {
+			if path == node.BaseFilePath {
+				return nil
+			}
 			return filepath.SkipDir
 		}
-
-		node.ClientCreateFile(dirEntry.Name())
+		log.Printf("Adding %q to owned files...\n", path)
+		if m := node.ClientCreateFile(dirEntry.Name()); m.Status != StatusOk {
+			log.Printf("Failed to add %q to owned files. Node responded with %q\n", path, m.Status)
+		}
 		return nil
 	})
 }
