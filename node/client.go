@@ -134,7 +134,8 @@ func (node *NodeConfig) ClientDeleteFile(fileName string) *MessageBody {
 }
 
 func (node *NodeConfig) ClientRecord() *MessageBody {
-	resBody, _ := node.marshalJSONRecord()
+	recJson, _ := node.marshalJSONRecord()
+	resBody, _ := json.Marshal(nodesClearPasswordRecordJson(string(recJson)))
 	return messageBodyFormat(CodeNone, StatusOk, string(resBody))
 }
 
@@ -144,7 +145,8 @@ func (node *NodeConfig) ClientDir() *MessageBody {
 }
 
 func (node *NodeConfig) ClientNodes() *MessageBody {
-	resBody, _ := node.marshalJSONNodes()
+	nodesJson, _ := node.marshalJSONNodes()
+	resBody, _ := json.Marshal(nodesClearPasswordJson(string(nodesJson)))
 	return messageBodyFormat(CodeNone, StatusOk, string(resBody))
 }
 
@@ -171,4 +173,22 @@ func clientMakeCUD(node *NodeConfig, file File, update UpdateTime) {
 		updateCopy.Content = ""
 		node.deleteFile(file.Name, updateCopy)
 	}
+}
+
+func nodesClearPasswordJson(nodesRaw string) map[string]Node {
+	nodes := map[string]Node{}
+	json.Unmarshal([]byte(nodesRaw), &nodes)
+	for k, v := range nodes {
+		v.Oauth.Password = "******"
+		nodes[k] = v
+	}
+	return nodes
+}
+
+func nodesClearPasswordRecordJson(recordRaw string) Record {
+	var record Record
+	json.Unmarshal([]byte(recordRaw), &record)
+	nodesRaw, _ := json.Marshal(record.OnlineNodes.NodesList)
+	record.OnlineNodes.NodesList = nodesClearPasswordJson(string(nodesRaw))
+	return record
 }
