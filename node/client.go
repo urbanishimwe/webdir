@@ -175,12 +175,12 @@ func clientMakeCUD(node *NodeConfig, file File, update UpdateTime) {
 	}
 }
 
-func nodesClearPasswordJson(nodesRaw string) map[string]Node {
-	nodes := map[string]Node{}
+func nodesClearPasswordJson(nodesRaw string) OnlineNodes {
+	var nodes OnlineNodes
 	json.Unmarshal([]byte(nodesRaw), &nodes)
-	for k, v := range nodes {
+	for k, v := range nodes.NodesList {
 		v.Oauth.Password = "******"
-		nodes[k] = v
+		nodes.NodesList[k] = v
 	}
 	return nodes
 }
@@ -188,7 +188,7 @@ func nodesClearPasswordJson(nodesRaw string) map[string]Node {
 func nodesClearPasswordRecordJson(recordRaw string) Record {
 	var record Record
 	json.Unmarshal([]byte(recordRaw), &record)
-	nodesRaw, _ := json.Marshal(record.OnlineNodes.NodesList)
-	record.OnlineNodes.NodesList = nodesClearPasswordJson(string(nodesRaw))
+	nodesRaw, _ := json.Marshal(record.OnlineNodes)
+	record.OnlineNodes = nodesClearPasswordJson(string(nodesRaw))
 	return record
 }
