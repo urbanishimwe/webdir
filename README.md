@@ -18,9 +18,11 @@ The mesh initiator, `pings` all nodes to see if any has dropped from the network
 
 Once a node make an internal change to `Record`, a signal is made to send the updates channel which the updates all other nodes.
 
+For an example of how node how can be published over the network check [Example HTTP](#example-http-server)
+
 ## Example HTTP server
 
-It is implemented in `./cnd/main/`
+It is implemented in `./cnmd/main/`
 
 Compile: `go build -o $exec-name ./cmd/main/`
 
