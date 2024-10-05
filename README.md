@@ -2,11 +2,11 @@
 
 A protocol for a decentralized online directory.
 
-To understand the protocol and code in `\node` please visit [Specification](https: //github.com/urbanishimwe/webdir/blob/main/WebDir.md)
+To understand the protocol and code in `\node` please visit [Specification](https://github.com/urbanishimwe/webdir/blob/main/WebDir.md)
 
 ## Node internal design
 
-After you have read the [Specification](https: //github.com/urbanishimwe/webdir/blob/main/WebDir.md), You may navigate in `node` directory.
+After you have read the [Specification](https://github.com/urbanishimwe/webdir/blob/main/WebDir.md), You may navigate in `node` directory.
 
 The `node/objects.go` contains public object used in communication as specified in spec.
 
