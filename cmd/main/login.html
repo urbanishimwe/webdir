@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> WebDir - Login </title>
+    <style>
+        :root {
+            --grey: #979797;
+            --dark-blue: #071629;
+            --white: #FFFFFF;
+        }
+
+        html {
+            background-color: var(--white);
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1,
+        input,
+        button,
+        p {
+            color: var(--dark-blue);
+            font-family: 'Source Sans Pro';
+            font-size: 14px;
+            line-height: 16px;
+            word-wrap: break-word;
+            text-align: center;
+        }
+
+        input {
+            border: none;
+            border-bottom: solid var(--grey) 1px;
+            margin: 2em 2em;
+            width: 40%;
+            height: 50px;
+        }
+
+        input::placeholder {
+            font-weight: 700;
+            color: var(--dark-blue);
+        }
+
+        button {
+            box-sizing: border-box;
+            width: fit-content;
+            border: none;
+            margin: 2em 2em;
+            padding: 1em;
+            border-radius: 22px;
+            filter: drop-shadow(0px 2px 20px rgba(0, 0, 0, 0.5));
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--white);
+            background-color: var(--dark-blue);
+        }
+    </style>
+</head>
+
+<body>
+    <h1> Login to the server</h1>
+    <input type="password" placeholder="Enter admin password" id="password" name="password">
+    <button type="button" id="login-btn"> Login </button>
+    <p id="login-feedback"></p>
+</body>
+<script>
+    document.getElementById("login-btn").addEventListener('click', () => {
+
+        const fBackP = document.getElementById("login-feedback");
+        fBackP.innerText = "logging in...";
+
+        fetch("login", {
+            method: "POST",
+            body: document.getElementById("password").value,
+            cache: "no-store",
+        }).then(resp => {
+            if (resp.status === 200) {
+                window.location.href = "/";
+                return null;
+            }
+            return resp.text();
+        }).then(v => {
+            if (v) fBackP.innerText = `login failed: ${v}`;
+        }).catch((error) => {
+            fBackP.innerText = `login failed: ${error}`;
+        });
+    });
+</script>
+
+</html>
