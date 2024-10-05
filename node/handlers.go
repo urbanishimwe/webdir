@@ -70,8 +70,15 @@ func (node *NodeConfig) HandleCodeGetInfo(mssg *Message) *Message {
 	case CodeNodes, CodeRegister:
 		resBody, _ = node.marshalJSONNodes()
 
-	case CodeDirectory, CodeCreateFile, CodeUpdateFile, CodeDeleteFile:
+	case CodeDirectory:
 		resBody, _ = node.marshalJSONDirectory()
+
+	case CodeCreateFile, CodeUpdateFile, CodeDeleteFile:
+		f, ok := node.getFile(cont.Content)
+		if !ok || f.Owner != node.Node.Oauth.UserName {
+			return responseFormat(node, mssg, StatusFileNotFound, true, "")
+		}
+		resBody, _ = json.Marshal(&f)
 
 	case CodeReadFile:
 		f, ok := node.getFile(cont.Content)
@@ -117,7 +124,7 @@ func (node *NodeConfig) HandleCodeUpdateFile(mssg *Message) *Message {
 	f.RecentUpdate.By = mssg.Header.Node.Oauth.UserName
 	f.RecentUpdate.Code = CodeUpdateFile
 
-	node.createFile(f)
+	node.createFile(clientMakeCUD(node, f, f.RecentUpdate))
 
 	return responseFormat(node, mssg, StatusOk, true, "")
 }
@@ -128,13 +135,19 @@ func (node *NodeConfig) HandleCodeDeleteFile(mssg *Message) *Message {
 		return responseFormat(node, mssg, StatusFileNotFound, true, "")
 	}
 
+	if err := deleteFile(node, f.Name); err != nil {
+		log.Printf("(HandleCodeDeleteFile) error: %q\n", err)
+		return responseFormat(node, mssg, StatusInternalError, true, "")
+	}
+
 	updates := UpdateTime{
 		By:   mssg.Header.Node.Oauth.UserName,
 		At:   time.Now(),
 		Code: CodeDeleteFile,
 	}
 
-	node.deleteFile(mssg.Body.Content, updates)
+	clientMakeCUD(node, f, updates)
+	node.deleteFile(f.Name, updates)
 	return responseFormat(node, mssg, StatusOk, true, "")
 }
 
@@ -148,16 +161,14 @@ func (node *NodeConfig) HandleCodeUpdate(mssg *Message) *Message {
 	}
 
 	switch updateContent.Code {
-	case CodeRegister, CodeNodes:
+	case CodeRegister, CodeNodes, CodeDrop:
 		var nodes OnlineNodes
 		err := json.Unmarshal([]byte(updateContent.Content), &nodes)
 		if err != nil {
 			log.Printf("(HandleCodeUpdate) unmarshalling(%q) OnlineNodes failed%q\n", updateContent.Content, err)
 			break
 		}
-		if nodes.RecentUpdate.At.After(node.getRecentUpdateNodes().At) {
-			node.setOnlineNodes(nodes)
-		}
+		node.setOnlineNodes(nodes)
 
 	case CodeDirectory:
 		var dir Directory
@@ -166,9 +177,7 @@ func (node *NodeConfig) HandleCodeUpdate(mssg *Message) *Message {
 			log.Printf("(HandleCodeUpdate) unmarshalling Directory failed%q\n", err)
 			break
 		}
-		if dir.RecentUpdate.At.After(node.getRecentUpdateDirectory().At) {
-			node.setDir(dir)
-		}
+		node.setDir(dir)
 
 	case CodeCreateFile, CodeUpdateFile, CodeDeleteFile:
 		var fileExternal File
@@ -179,23 +188,25 @@ func (node *NodeConfig) HandleCodeUpdate(mssg *Message) *Message {
 		}
 
 		fileInternal, ok := node.getFile(fileExternal.Name)
-		// if !ok {
-		// 	return responseFormat(node, mssg, StatusFileNotFound, true, fileExternal.Name)
-		// }
-
-		// log.Printf("")
 		if updateContent.Code == CodeDeleteFile {
-			if fileInternal.CreatedAt.After(fileExternal.CreatedAt) {
+			if !ok {
+				return responseFormat(node, mssg, StatusFileNotFound, true, fileInternal.Name)
+			}
+			if fileInternal.CreatedAt.After(fileExternal.RecentUpdate.At) {
 				return responseFormat(node, mssg, StatusFileUpdateOld, true, fileInternal.Name)
 			}
 			node.deleteFile(fileInternal.Name, fileInternal.RecentUpdate)
 
 		} else if updateContent.Code == CodeCreateFile {
-			if ok && fileInternal.RecentUpdate.At.Before(fileExternal.RecentUpdate.At) {
+			if ok && fileInternal.CreatedAt.Before(fileExternal.CreatedAt) {
 				return responseFormat(node, mssg, StatusFileExist, true, fileInternal.Name)
 			}
+			// File did not exist or fileExternal was created before fileInternal
 			node.createFile(fileExternal)
 		} else {
+			if !ok {
+				return responseFormat(node, mssg, StatusFileNotFound, true, fileInternal.Name)
+			}
 			if fileInternal.RecentUpdate.At.After(fileExternal.RecentUpdate.At) {
 				return responseFormat(node, mssg, StatusFileUpdateOld, true, fileExternal.Name)
 			}

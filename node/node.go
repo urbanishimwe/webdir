@@ -135,30 +135,8 @@ func sendUpdates(node *NodeConfig, updates *UpdateTime) {
 			continue
 		}
 
-		if resMssg.Body.Status == StatusFileUpdateOld && node.meshInitiator().Address != "" {
-			// Revoke old changes made by nodes that are not mesh initiator
-			updateTimeRaw, _ := json.Marshal(CodeInfoContent{Code: CodeDirectory})
-			mssg := Message{
-				Header: MessageHeader{
-					Node: node.Node,
-				},
-				Body: MessageBody{
-					Code:    CodeUpdate,
-					Content: string(updateTimeRaw),
-				},
-			}
-			_resMssg, err := node.NetClient(node.meshInitiator().Address, &mssg)
-			if err != nil || _resMssg.Body.Status != StatusOk {
-				log.Printf("(sendUpdates) mesh intiator error: %q\n", err)
-				continue
-			}
-			var dir Directory
-			err = json.Unmarshal([]byte(_resMssg.Body.Content), &dir)
-			if err != nil {
-				log.Printf("(sendUpdates) unmarshalling mesh intiator body error: %q\n", err)
-				continue
-			}
-			node.setDir(dir)
+		if resMssg.Body.Status != StatusOk {
+			log.Printf("Node(%s) update code(%s) responded with %q\n", _node.Oauth.UserName, resMssg.Body.Code, resMssg.Body.Status)
 		}
 	}
 }
@@ -200,7 +178,7 @@ func nodePing(node *NodeConfig) {
 				resMssg, err := node.NetClient(_node.Address, &mssg)
 				if e, ok := checkCantReachAddrError(err); ok {
 					// NODE COULD NOT BE REACHED
-					log.Printf("(nodePing) node(%s) could not be reached at(%s) removed it!: %q\n", _node.Oauth.UserName, _node.Address, e)
+					log.Printf("(nodePing) node(%s) could not be reached at(%s)\nError: %q\n", _node.Oauth.UserName, _node.Address, e)
 					removeNodes(node, _node)
 				}
 
@@ -237,6 +215,6 @@ func checkCantReachAddrError(err error) (error, bool) {
 func removeNodes(node *NodeConfig, n Node) {
 	node.deleteNode(n.Oauth.UserName, updateTimeNow(CodeNodes, node.Node.Oauth.UserName, ""))
 	nodesJson, _ := node.marshalJSONNodes()
-	now := updateTimeNow(CodeRegister, node.Node.Oauth.UserName, string(nodesJson))
+	now := updateTimeNow(CodeDrop, node.Node.Oauth.UserName, string(nodesJson))
 	node.updatesChan <- &now
 }

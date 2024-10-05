@@ -114,6 +114,7 @@ Below is a list of possible Message codes:
 | CodeUpdateFile | Update a file|
 | CodeDeleteFile | Delete a file|
 | CodeRegister | Registering on the network |
+| CodeDrop | Node has dropped off the network |
 
 ## Response status
 

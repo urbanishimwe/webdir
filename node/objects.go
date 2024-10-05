@@ -92,6 +92,7 @@ const (
 	CodeUpdateFile
 	CodeDeleteFile
 	CodeRegister
+	CodeDrop
 )
 
 func (c Code) String() string {
@@ -108,6 +109,7 @@ func (c Code) String() string {
 		"CodeUpdateFile",
 		"CodeDeleteFile",
 		"CodeRegister",
+		"CodeDrop",
 	}
 	if int(c) < len(cName) {
 		return cName[c]
@@ -233,12 +235,6 @@ func (node *NodeConfig) deleteNode(nodeName string, updateTime UpdateTime) {
 	log.Printf("Deleted node(%q)\n", nodeName)
 }
 
-func (node *NodeConfig) getRecentUpdateNodes() UpdateTime {
-	node.nodesRwMx.RLock()
-	defer node.nodesRwMx.RUnlock()
-	return node.Record.OnlineNodes.RecentUpdate
-}
-
 func (node *NodeConfig) marshalJSONDirectory() ([]byte, error) {
 	node.dirsRwMx.RLock()
 	defer node.dirsRwMx.RUnlock()
@@ -270,10 +266,4 @@ func (node *NodeConfig) deleteFile(fileName string, updateTime UpdateTime) {
 	defer node.dirsRwMx.Unlock()
 	delete(node.Record.Directory.FilesList, fileName)
 	node.Record.Directory.RecentUpdate = updateTime
-}
-
-func (node *NodeConfig) getRecentUpdateDirectory() UpdateTime {
-	node.dirsRwMx.RLock()
-	defer node.dirsRwMx.RUnlock()
-	return node.Record.Directory.RecentUpdate
 }

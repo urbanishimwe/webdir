@@ -18,7 +18,8 @@ func (node *NodeConfig) ClientCreateFile(fileName string) *MessageBody {
 		return messageBodyFormat(CodeCreateFile, StatusInternalError, err.Error())
 	}
 
-	clientMakeCUD(node, File{Name: fileName}, updateTimeNow(CodeCreateFile, node.Node.Oauth.UserName, ""))
+	f := clientMakeCUD(node, File{Name: fileName}, updateTimeNow(CodeCreateFile, node.Node.Oauth.UserName, ""))
+	node.createFile(f)
 	return messageBodyFormat(CodeCreateFile, StatusOk, fileName)
 }
 
@@ -26,13 +27,6 @@ func (node *NodeConfig) ClientUpdateFile(updateFileContent UpdateFileContent) *M
 	f, ok := node.getFile(updateFileContent.Name)
 	if !ok {
 		return messageBodyFormat(CodeUpdateFile, StatusFileNotFound, updateFileContent.Name)
-	} else if f.Owner == node.Node.Oauth.UserName {
-		if err := writeFile(node, f.Name, []byte(updateFileContent.Content)); err != nil {
-			log.Printf("ClientUpdateFile write file error %q\n", err)
-			return messageBodyFormat(CodeUpdateFile, StatusInternalError, err.Error())
-		}
-		clientMakeCUD(node, f, updateTimeNow(CodeUpdateFile, node.Node.Oauth.UserName, ""))
-		return messageBodyFormat(CodeUpdateFile, StatusOk, f.Name)
 	}
 
 	remoteNode, ok := node.getNode(f.Owner)
@@ -48,6 +42,11 @@ func (node *NodeConfig) ClientUpdateFile(updateFileContent UpdateFileContent) *M
 		},
 		Body: *messageBodyFormat(CodeUpdateFile, "", string(updateFileRaw)),
 	}
+
+	if f.Owner == node.Node.Oauth.UserName {
+		return &node.HandleCodeUpdateFile(&reqMssg).Body
+	}
+
 	resMssg, err := node.NetClient(remoteNode.Address, &reqMssg)
 	if err != nil {
 		log.Printf("ClientUpdateFile network error: %q\n", err)
@@ -60,15 +59,6 @@ func (node *NodeConfig) ClientReadFile(fileName string) *MessageBody {
 	f, ok := node.getFile(fileName)
 	if !ok {
 		return messageBodyFormat(CodeReadFile, StatusFileNotFound, fileName)
-	}
-
-	if f.Owner == node.Node.Oauth.UserName {
-		body, err := readFile(node, fileName)
-		if err != nil {
-			log.Printf("ClientReadFile read file(%s) failed: %q\n", fileName, err)
-			return messageBodyFormat(CodeReadFile, StatusInternalError, err.Error())
-		}
-		return messageBodyFormat(CodeReadFile, StatusOk, string(body))
 	}
 
 	remoteNode, ok := node.getNode(f.Owner)
@@ -87,6 +77,11 @@ func (node *NodeConfig) ClientReadFile(fileName string) *MessageBody {
 		},
 		Body: *messageBodyFormat(CodeGetInfo, "", string(getFileRaw)),
 	}
+
+	if f.Owner == node.Node.Oauth.UserName {
+		return &node.HandleCodeGetInfo(&reqMssg).Body
+	}
+
 	resMssg, err := node.NetClient(remoteNode.Address, &reqMssg)
 	if err != nil {
 		log.Printf("ClientReadFile network error: %q\n", err)
@@ -102,16 +97,6 @@ func (node *NodeConfig) ClientDeleteFile(fileName string) *MessageBody {
 		return messageBodyFormat(CodeDeleteFile, StatusFileNotFound, fileName)
 	}
 
-	if f.Owner == node.Node.Oauth.UserName {
-		err := deleteFile(node, fileName)
-		if err != nil {
-			log.Printf("ClientDeleteFile read file(%s) failed: %q\n", fileName, err)
-			return messageBodyFormat(CodeDeleteFile, StatusInternalError, err.Error())
-		}
-		clientMakeCUD(node, f, updateTimeNow(CodeDeleteFile, node.Node.Oauth.UserName, ""))
-		return messageBodyFormat(CodeDeleteFile, StatusOk, f.Name)
-	}
-
 	remoteNode, ok := node.getNode(f.Owner)
 	if !ok {
 		return messageBodyFormat(CodeDeleteFile, StatusNodeNotOnline, f.Owner)
@@ -124,10 +109,15 @@ func (node *NodeConfig) ClientDeleteFile(fileName string) *MessageBody {
 		},
 		Body: *messageBodyFormat(CodeDeleteFile, "", string(fileName)),
 	}
+
+	if remoteNode.Oauth.UserName == node.Node.Oauth.UserName {
+		return &node.HandleCodeDeleteFile(&reqMssg).Body
+	}
+
 	resMssg, err := node.NetClient(remoteNode.Address, &reqMssg)
 	if err != nil {
 		log.Printf("ClientReadFile network error: %q\n", err)
-		return messageBodyFormat(CodeUpdateFile, StatusInternalError, err.Error())
+		return messageBodyFormat(CodeResponse, StatusInternalError, err.Error())
 	}
 
 	return &resMssg.Body
@@ -154,9 +144,9 @@ func (node *NodeConfig) ClientWebDir(mssg *Message) *Message {
 	return node.NodeAuthorized(mssg)
 }
 
-func clientMakeCUD(node *NodeConfig, file File, update UpdateTime) {
+func clientMakeCUD(node *NodeConfig, file File, update UpdateTime) File {
 	update.Content = ""
-	file.RecentUpdate.At = update.At
+	file.RecentUpdate = update
 	if update.Code == CodeCreateFile {
 		file.CreatedAt = update.At
 		file.Owner = update.By
@@ -165,14 +155,7 @@ func clientMakeCUD(node *NodeConfig, file File, update UpdateTime) {
 	fileJson, _ := json.Marshal(&file)
 	update.Content = string(fileJson)
 	node.updatesChan <- &update
-
-	if update.Code == CodeCreateFile || update.Code == CodeUpdateFile {
-		node.createFile(file)
-	} else if update.Code == CodeDeleteFile {
-		updateCopy := update
-		updateCopy.Content = ""
-		node.deleteFile(file.Name, updateCopy)
-	}
+	return file
 }
 
 func nodesClearPasswordJson(nodesRaw string) OnlineNodes {
